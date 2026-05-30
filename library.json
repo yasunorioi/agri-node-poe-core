@@ -1,0 +1,24 @@
+{
+  "name": "agri-node-poe-core",
+  "version": "0.1.0",
+  "description": "Shared base for M5Stack ATOM PoE sensor / relay nodes that feed OGMS and UECS-CCM. Bundles ESP-IDF-lwIP-backed W5500 setup, NVS config, embedded HTTP UI, MQTT and UECS-CCM publishers, mDNS/OTA, and a status LED state machine.",
+  "keywords": "agriculture, ogms, uecs, ccm, m5stack, atom, poe, w5500, mqtt, mdns",
+  "authors": [
+    {
+      "name": "yasunorioi",
+      "url": "https://github.com/yasunorioi"
+    }
+  ],
+  "license": "0BSD",
+  "frameworks": "arduino",
+  "platforms": "espressif32",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yasunorioi/agri-node-poe-core.git"
+  },
+  "dependencies": [
+    { "name": "ArduinoJson", "owner": "bblanchon", "version": "^7.0.0" },
+    { "name": "PubSubClient", "owner": "knolleary", "version": "^2.8" },
+    { "name": "FastLED", "owner": "fastled", "version": "^3.6.0" }
+  ]
+}
