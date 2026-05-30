@@ -278,18 +278,19 @@ struct WebUI {
                    pageAbout(*cfg, hooks, fwName, fwVersion));
     } else if (method == "GET" && path == "/api/status") {
       JsonDocument doc;
-      doc["uptime_s"]      = millis() / 1000;
-      doc["ip"]            = ETH.localIP().toString();
-      doc["link"]          = linkUp ? (haveLease ? "up" : "no-lease") : "down";
-      doc["mqtt_host"]      = cfg->mqtt_host[0] ? cfg->mqtt_host : "";
-      doc["mqtt_connected"] = MQTT::connected();
-      doc["ccm_enabled"]    = cfg->ccm_enabled;
-      hooks.addStatusFields(doc.as<JsonObject>());
+      JsonObject root = doc.to<JsonObject>();
+      root["uptime_s"]       = millis() / 1000;
+      root["ip"]             = ETH.localIP().toString();
+      root["link"]           = linkUp ? (haveLease ? "up" : "no-lease") : "down";
+      root["mqtt_host"]      = cfg->mqtt_host[0] ? cfg->mqtt_host : "";
+      root["mqtt_connected"] = MQTT::connected();
+      root["ccm_enabled"]    = cfg->ccm_enabled;
+      hooks.addStatusFields(root);
       String out; serializeJson(doc, out);
       sendResponse(client, 200, "application/json", out);
     } else if (method == "GET" && path == "/api/config") {
       JsonDocument doc;
-      commonToJson(*cfg, doc.as<JsonObject>());
+      commonToJson(*cfg, doc.to<JsonObject>());
       String out; serializeJson(doc, out);
       sendResponse(client, 200, "application/json", out);
     } else {
