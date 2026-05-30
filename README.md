@@ -65,6 +65,17 @@ dashboard rows and CCM channel form fields.
   M5 ADC Unit v1.1 (ADS1110) + PVSS-03 pyranometer →
   `InRadiation.cMC`
 
+## Notes for downstream sketches
+
+**ISRs go in `main.cpp`, not in a header.** ESP32 requires interrupt
+handlers to live in IRAM (`IRAM_ATTR`), but defining an `inline
+IRAM_ATTR` function in a header makes the literal pool the ISR loads
+from get placed back in flash — the linker rejects this with
+`dangerous relocation: l32r: literal placed after use`. Declare the
+ISR `extern` in your `sensors.h` and define it once in `main.cpp`
+with `void IRAM_ATTR onMyPulse() { ... }`. See `agri-flow-poe` for
+the working pattern.
+
 ## License
 
 0BSD — copy and adapt freely.
