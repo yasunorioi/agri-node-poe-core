@@ -58,9 +58,12 @@ dashboard rows and CCM channel form fields.
 - [`agri-env-poe`](https://github.com/yasunorioi/agri-env-poe) —
   M5 ENV III (SHT30+QMP6988) + SCD41 CO₂ → `InAirTemp.cMC`,
   `InAirHumid.cMC`, `InAirPressure.cMC`, `InAirCO2.cMC`
-- *(planned)* `agri-flow-poe` — DIGITEN hall-effect flow meter
-- *(planned)* `agri-solar-poe` — M5 ADC Unit v1.1 (ADS1110) +
-  PVSS-style solar radiation sensor → `InRadiation.cMC`
+- [`agri-flow-poe`](https://github.com/yasunorioi/agri-flow-poe) —
+  DIGITEN hall-effect flow meter →
+  `WaterFlow.cMC` (L/min) + `WaterCons.cMC` (L cumulative)
+- [`agri-solar-poe`](https://github.com/yasunorioi/agri-solar-poe) —
+  M5 ADC Unit v1.1 (ADS1110) + PVSS-03 pyranometer →
+  `InRadiation.cMC`
 
 ## License
 
