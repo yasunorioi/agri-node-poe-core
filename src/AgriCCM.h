@@ -91,4 +91,15 @@ inline bool ccmSend(const String &xml) {
   return ok;
 }
 
+// UECS node announcement ("cnd"). UECS masters (e.g. ArSprout) discover a
+// node from its periodic cnd broadcast and only then accept its data CCM —
+// without this, a node's InAirTemp etc. are silently dropped. Send each
+// CCM cycle. region should match the node's data region.
+inline bool ccmAnnounce(int room, int region, int order, int priority) {
+  String x = ccmEnvelopeOpen();
+  x += ccmDatum("cnd.cMC", room, region, order, priority, "0");
+  x += ccmEnvelopeClose();
+  return ccmSend(x);
+}
+
 } // namespace agri
