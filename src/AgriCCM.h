@@ -76,7 +76,7 @@ inline String ccmDatum(const char *type, int room, int region, int order,
   s += order;
   s += "\" priority=\"";
   s += priority;
-  s += "\" lv=\"S\" cast=\"uni\">";
+  s += "\">";
   s += value;
   s += "</DATA>";
   return s;
