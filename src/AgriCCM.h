@@ -19,6 +19,7 @@
 
 #include <Arduino.h>
 #include <NetworkUdp.h>
+#include <ETH.h>
 #include "AgriCommonConfig.h"
 
 namespace agri {
@@ -42,14 +43,21 @@ inline void ccmBegin() {
 
 inline String ccmEnvelopeOpen() {
   String s;
-  s.reserve(48);
-  s  = "<UECS ver=\"";
+  s.reserve(64);
+  s  = "<?xml version=\"1.0\"?><UECS ver=\"";
   s += UECS_VERSION;
   s += "\">";
   return s;
 }
 
-inline String ccmEnvelopeClose() { return "</UECS>"; }
+// UECS-CCM requires the sender <IP> element; receivers (e.g. ArSprout)
+// drop packets without it.
+inline String ccmEnvelopeClose() {
+  String s = "<IP>";
+  s += ETH.localIP().toString();
+  s += "</IP></UECS>";
+  return s;
+}
 
 // Build a single `<DATA>` element. `region` is taken as an argument
 // instead of read from CommonConfig so the project can apply per-sensor
