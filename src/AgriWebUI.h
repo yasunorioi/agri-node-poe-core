@@ -21,6 +21,7 @@
 #include <Network.h>
 #include <NetworkServer.h>
 #include <NetworkClient.h>
+#include <Update.h>
 #include <ArduinoJson.h>
 #include "AgriCommonConfig.h"
 #include "AgriMQTT.h"
@@ -127,7 +128,7 @@ inline String pageHead(const char *title, const char *navTitle) {
          "a{color:#d0d6e0}"
          "</style></head><body>");
   s += "<h2>"; s += navTitle; s += F("</h2>"
-         "<p><a href='/'>Dashboard</a> | <a href='/config'>Config</a> | <a href='/about'>About</a></p>");
+         "<p><a href='/'>Dashboard</a> | <a href='/config'>Config</a> | <a href='/ota'>OTA</a> | <a href='/about'>About</a></p>");
   return s;
 }
 
@@ -209,6 +210,56 @@ inline void applyCommonConfigForm(const String &body, CommonConfig &c) {
   c.ccm_priority        = (int16_t) parseFormInt(body, "ccm_pri",  c.ccm_priority);
 }
 
+// ---- OTA (HTTP firmware upload) ------------------------------------------
+inline String pageOta(const WebHooks &h) {
+  String s = pageHead("OTA", h.nodeTitle());
+  s += F("<div class=sec><h3>Firmware Update (OTA)</h3>"
+         "<p>Pick a <code>firmware.bin</code> and upload. The node reboots after a verified flash. "
+         "Do not power off during the update.</p>"
+         "<input type=file id=f accept='.bin'> <input type=submit value='Update' onclick='up()'>"
+         "<p id=st></p>"
+         "<script>"
+         "async function up(){var f=document.getElementById('f').files[0];if(!f){st.textContent='choose a .bin first';return;}"
+         "var st=document.getElementById('st');st.textContent='Uploading '+f.size+' bytes...';"
+         "try{var r=await fetch('/api/ota',{method:'POST',body:f});st.textContent=await r.text();}"
+         "catch(e){st.textContent='done / device rebooting — reconnect in ~10s';}}"
+         "</script></div></body></html>");
+  return s;
+}
+
+// Stream the raw request body straight into the Update partition. Must run
+// BEFORE the generic POST-body-into-String read (a ~800 KB image would never
+// fit a String). Body = raw firmware.bin bytes (fetch(...,{body:file})).
+inline void handleOtaUpload(NetworkClient &client, int contentLen) {
+  if (contentLen <= 0 || !Update.begin(contentLen)) {
+    sendResponse(client, 500, "text/plain", "OTA begin failed\n");
+    return;
+  }
+  uint8_t buf[1024];
+  int written = 0;
+  uint32_t last = millis();
+  while (written < contentLen) {
+    int avail = client.available();
+    if (avail > 0) {
+      int n = client.read(buf, min(avail, (int)sizeof(buf)));
+      if (n > 0) { Update.write(buf, n); written += n; last = millis(); }
+    } else if (millis() - last > 10000) {
+      break;  // stalled
+    } else {
+      delay(1);
+    }
+  }
+  if (written == contentLen && Update.end(true)) {
+    sendResponse(client, 200, "text/plain", "OK — flashed, rebooting\n");
+    client.flush();
+    delay(500);
+    ESP.restart();
+  } else {
+    Update.abort();
+    sendResponse(client, 500, "text/plain", "OTA failed (incomplete or verify error)\n");
+  }
+}
+
 // ---- request loop --------------------------------------------------------
 struct WebUI {
   static NetworkServer server;
@@ -254,6 +305,14 @@ struct WebUI {
       if (h.startsWith("Content-Length:")) contentLen = h.substring(15).toInt();
     }
 
+    // OTA upload: stream raw body to flash (skip the String body read below)
+    if (method == "POST" && path == "/api/ota") {
+      handleOtaUpload(client, contentLen);
+      client.flush();
+      client.stop();
+      return;
+    }
+
     String body;
     if (method == "POST" && contentLen > 0) {
       body.reserve(contentLen);
@@ -273,6 +332,8 @@ struct WebUI {
       hooks.applyConfigSensorForm(body);
       hooks.saveConfig();
       sendRedirect(client, "/config");
+    } else if (method == "GET" && path == "/ota") {
+      sendResponse(client, 200, "text/html; charset=utf-8", pageOta(hooks));
     } else if (method == "GET" && path == "/about") {
       sendResponse(client, 200, "text/html; charset=utf-8",
                    pageAbout(*cfg, hooks, fwName, fwVersion));
