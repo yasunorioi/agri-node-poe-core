@@ -60,7 +60,7 @@ inline String ccmDatum(const char *type, int room, int region, int order,
   s.reserve(160);
   s  = "<DATA type=\"";
   s += type;
-  s += ".cMC\" room=\"";
+  s += "\" room=\"";
   s += room;
   s += "\" region=\"";
   s += region;
