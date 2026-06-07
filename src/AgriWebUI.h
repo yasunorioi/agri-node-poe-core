@@ -138,10 +138,12 @@ inline String pageHead(const char *title, const char *navTitle) {
 inline String pageDashboard(const WebHooks &h) {
   const char *t = h.nodeTitle();
   String s = pageHead(t, t);
+  s += F("<div id=ota style='display:none;margin:8px 0;padding:8px 12px;background:#3a2a0a;border-left:4px solid #fc6;border-radius:4px'></div>");
   s += "<div class=sec id=sens>"; s += h.renderDashboardSensors(); s += "</div>";
   s += F("<div class=sec id=net>Loading…</div>"
          "<script>"
          "async function tick(){"
+         "try{"
          "let r=await fetch('/api/status');let d=await r.json();"
          "let n='<h3>Network</h3><table>'"
          "+'<tr><th>IP</th><td>'+d.ip+'</td></tr>'"
@@ -151,10 +153,25 @@ inline String pageDashboard(const WebHooks &h) {
          "+'<tr><th>Uptime</th><td>'+d.uptime_s+' s</td></tr>'"
          "+'</table>';"
          "document.getElementById('net').innerHTML=n;"
-         // refresh the project-rendered sensor block without a page reload
+         "let o=document.getElementById('ota');"
+         "if(d.ota&&d.ota.state=='running'){o.style.display='block';o.innerHTML='Updating… '+d.ota.progress+'%';}"
+         "else if(d.ota&&d.ota.state=='pending'){o.style.display='block';o.innerHTML='Update pending…';}"
+         "else if(d.ota&&d.ota.state=='done'){o.style.display='block';o.innerHTML='Update complete. Restarting…';}"
+         "else if(d.ota&&d.ota.state=='failed'){o.style.display='block';o.innerHTML='Update failed: '+(d.ota.error||'unknown');}"
+         "else if(d.ota&&d.ota.latest){o.style.display='block';"
+         "o.innerHTML='<b>New version '+d.ota.latest+' available.</b> <button onclick=\"doUpdate(\\''+d.ota.latest+'\\')\" style=\"margin-left:8px;background:#fc6;color:#222;border:0;padding:6px 14px;border-radius:3px;cursor:pointer;font-weight:bold\">Update</button>';}"
+         "else{o.style.display='none';}"
+         "}catch(e){}"
+         "try{"
          "let f=await fetch('/api/dashboard');"
-         "document.getElementById('sens').innerHTML=await f.text();"
-         "}tick();setInterval(tick,3000);"
+         "if(f.ok)document.getElementById('sens').innerHTML=await f.text();"
+         "}catch(e){}"
+         "}"
+         "async function doUpdate(v){"
+         "if(!confirm('Download v'+v+' from GitHub and flash?'))return;"
+         "await fetch('/api/update',{method:'POST'});tick();"
+         "}"
+         "tick();setInterval(tick,3000);"
          "</script></body></html>");
   return s;
 }
@@ -362,9 +379,23 @@ struct WebUI {
       root["mqtt_host"]      = cfg->mqtt_host[0] ? cfg->mqtt_host : "";
       root["mqtt_connected"] = MQTT::connected();
       root["ccm_enabled"]    = cfg->ccm_enabled;
+      JsonObject ota = root["ota"].to<JsonObject>();
+      ota["state"]    = OTA::stateString();
+      ota["progress"] = OTA::progress;
+      if (OTA::updateAvailable) ota["latest"] = OTA::latestVersion;
+      if (OTA::error.length())  ota["error"]  = OTA::error;
       hooks.addStatusFields(root);
       String out; serializeJson(doc, out);
       sendResponse(client, 200, "application/json", out);
+    } else if (method == "POST" && path == "/api/update") {
+      if (!OTA::updateAvailable) {
+        sendResponse(client, 409, "text/plain", "no update available\n");
+      } else if (OTA::state != OTA::IDLE && OTA::state != OTA::FAILED) {
+        sendResponse(client, 409, "text/plain", "ota in progress\n");
+      } else {
+        OTA::schedule();
+        sendResponse(client, 202, "text/plain", "ota scheduled\n");
+      }
     } else if (method == "GET" && path == "/api/config") {
       JsonDocument doc;
       commonToJson(*cfg, doc.to<JsonObject>());

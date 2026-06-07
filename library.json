@@ -1,6 +1,6 @@
 {
   "name": "agri-node-poe-core",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Shared base for M5Stack ATOM PoE sensor / relay nodes that feed OGMS and UECS-CCM. Bundles ESP-IDF-lwIP-backed W5500 setup, NVS config, embedded HTTP UI, MQTT and UECS-CCM publishers, mDNS/OTA, and a status LED state machine.",
   "keywords": "agriculture, ogms, uecs, ccm, m5stack, atom, poe, w5500, mqtt, mdns",
   "authors": [

@@ -34,4 +34,5 @@
 #include "AgriLED.h"
 #include "AgriMQTT.h"
 #include "AgriCCM.h"
+#include "AgriOTA.h"
 #include "AgriWebUI.h"
