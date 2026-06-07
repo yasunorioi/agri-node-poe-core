@@ -5,6 +5,8 @@
 //   - common-config form rows (MQTT + CCM envelope)
 //   - request dispatch loop and the response/redirect helpers
 //   - /api/config endpoint (common fields only)
+//   - /api/dashboard endpoint (re-renders the project's sensor block for
+//     the dashboard's no-reload refresh)
 //
 // Owned by the project (via the Hooks struct passed to begin()):
 //   - dashboard sensor block HTML
@@ -24,6 +26,7 @@
 #include <Update.h>
 #include <ArduinoJson.h>
 #include "AgriCommonConfig.h"
+#include "AgriNetwork.h"
 #include "AgriMQTT.h"
 
 namespace agri {
@@ -135,7 +138,7 @@ inline String pageHead(const char *title, const char *navTitle) {
 inline String pageDashboard(const WebHooks &h) {
   const char *t = h.nodeTitle();
   String s = pageHead(t, t);
-  s += "<div class=sec>"; s += h.renderDashboardSensors(); s += "</div>";
+  s += "<div class=sec id=sens>"; s += h.renderDashboardSensors(); s += "</div>";
   s += F("<div class=sec id=net>Loading…</div>"
          "<script>"
          "async function tick(){"
@@ -148,6 +151,9 @@ inline String pageDashboard(const WebHooks &h) {
          "+'<tr><th>Uptime</th><td>'+d.uptime_s+' s</td></tr>'"
          "+'</table>';"
          "document.getElementById('net').innerHTML=n;"
+         // refresh the project-rendered sensor block without a page reload
+         "let f=await fetch('/api/dashboard');"
+         "document.getElementById('sens').innerHTML=await f.text();"
          "}tick();setInterval(tick,3000);"
          "</script></body></html>");
   return s;
@@ -160,7 +166,7 @@ inline String pageConfig(const CommonConfig &c, const WebHooks &h) {
   };
   s += F("<div class=sec><h3>MQTT</h3><form method=POST action='/config'><table>");
   row("Node ID",     "<input name=node_id value='"  + String(c.node_id)  + "'>");
-  row("Hostname",    "<input name=hostname value='" + String(c.hostname) + "'>");
+  row("Hostname (mDNS .local)", "<input name=hostname value='" + String(c.hostname) + "'>");
   row("MQTT Host",   "<input name=mq_host value='"  + String(c.mqtt_host) + "'>");
   row("MQTT Port",   "<input type=number name=mq_port value='" + String(c.mqtt_port) + "'>");
   row("MQTT User",   "<input name=mq_user value='"  + String(c.mqtt_user) + "'>");
@@ -328,15 +334,25 @@ struct WebUI {
     } else if (method == "POST" && path == "/config") {
       // const-cast: the writable config lives in the project; we accept
       // a const reference for read paths but mutate at POST time.
+      char oldHostname[32];
+      strlcpy(oldHostname, cfg->hostname, sizeof(oldHostname));
       applyCommonConfigForm(body, const_cast<CommonConfig&>(*cfg));
       hooks.applyConfigSensorForm(body);
       hooks.saveConfig();
+      // hostname changed → re-announce <new>.local (mDNS + OTA) right away
+      if (cfg->hostname[0] && strcmp(oldHostname, cfg->hostname) != 0)
+        mdnsRestart(cfg->hostname);
       sendRedirect(client, "/config");
     } else if (method == "GET" && path == "/ota") {
       sendResponse(client, 200, "text/html; charset=utf-8", pageOta(hooks));
     } else if (method == "GET" && path == "/about") {
       sendResponse(client, 200, "text/html; charset=utf-8",
                    pageAbout(*cfg, hooks, fwName, fwVersion));
+    } else if (method == "GET" && path == "/api/dashboard") {
+      // HTML fragment for the dashboard's live sensor block (same renderer
+      // as the initial page load, so projects need no extra code)
+      sendResponse(client, 200, "text/html; charset=utf-8",
+                   hooks.renderDashboardSensors());
     } else if (method == "GET" && path == "/api/status") {
       JsonDocument doc;
       JsonObject root = doc.to<JsonObject>();

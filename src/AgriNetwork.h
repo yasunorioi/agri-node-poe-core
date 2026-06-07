@@ -106,4 +106,14 @@ inline void otaBegin(const char *hostname) {
 
 inline void otaHandle() { ArduinoOTA.handle(); }
 
+// Re-announce mDNS + OTA under a new hostname without a reboot (used by the
+// WebUI when /config changes the hostname). Note the DHCP-registered name
+// (ETH.setHostname) still only updates on the next lease / reboot.
+inline void mdnsRestart(const char *hostname) {
+  ArduinoOTA.end();
+  MDNS.end();
+  mdnsBegin(hostname);
+  otaBegin(hostname);
+}
+
 } // namespace agri
