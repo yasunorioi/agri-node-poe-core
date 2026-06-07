@@ -1,7 +1,8 @@
 // AgriMQTT.h — thin wrapper around PubSubClient driven by CommonConfig.
 //
 // The project owns what / when to publish; this header just handles
-// connect / reconnect, LWT on "<prefix>/status", and the socket plumbing.
+// connect / reconnect, LWT on "<prefix>/sys/<node_id>/online" (1/0),
+// and the socket plumbing.
 
 #pragma once
 
@@ -33,20 +34,23 @@ struct MQTT {
     if (mqtt.connected()) return true;
     mqtt.setServer(cfg.mqtt_host, cfg.mqtt_port);
 
-    char will[96];
-    snprintf(will, sizeof(will), "%s/status", cfg.mqtt_topic_prefix);
+    // Per-node liveness under the agriha sys category; node_id in the path
+    // so several nodes can share one house prefix (e.g. "agriha/2").
+    char will[128];
+    snprintf(will, sizeof(will), "%s/sys/%s/online",
+             cfg.mqtt_topic_prefix, cfg.node_id);
 
     bool ok;
     if (cfg.mqtt_user[0]) {
       ok = mqtt.connect(cfg.node_id, cfg.mqtt_user, cfg.mqtt_pass,
-                        will, 0, true, "offline");
+                        will, 0, true, "0");
     } else {
       ok = mqtt.connect(cfg.node_id, nullptr, nullptr,
-                        will, 0, true, "offline");
+                        will, 0, true, "0");
     }
     Serial.printf("[MQTT] connect(%s:%u) = %s\n",
                   cfg.mqtt_host, cfg.mqtt_port, ok ? "OK" : "FAIL");
-    if (ok) mqtt.publish(will, "online", true);
+    if (ok) mqtt.publish(will, "1", true);
     return ok;
   }
 
