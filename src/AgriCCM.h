@@ -25,6 +25,14 @@
 namespace agri {
 
 inline const IPAddress  CCM_MULTICAST(224, 0, 0, 1);
+// ArSprout Pi's CCM receiver listens on the LIMITED BROADCAST address, not
+// the UECS multicast group. A node that only sends to 224.0.0.1 is silently
+// ignored by ArSprout (this is why agri-env's InAirTemp never registered,
+// despite byte-perfect packets — confirmed 2026-06-10 against ArSprout Pi
+// 1.17 with a packet emulator: same packet to 255.255.255.255 was ingested
+// within seconds, to 224.0.0.1 never). We send to both so the node works
+// with ArSprout (broadcast) and spec-compliant multicast managers alike.
+inline const IPAddress  CCM_BROADCAST(255, 255, 255, 255);
 inline constexpr uint16_t CCM_PORT       = 16520;
 inline const char *const UECS_VERSION    = "1.00-E10";
 
@@ -82,19 +90,29 @@ inline String ccmDatum(const char *type, int room, int region, int order,
   return s;
 }
 
-inline bool ccmSend(const String &xml) {
+inline bool ccmSendTo(const IPAddress &dest, const String &xml) {
   NetworkUDP &u = ccmSocket();
-  if (!u.beginPacket(CCM_MULTICAST, CCM_PORT)) return false;
+  if (!u.beginPacket(dest, CCM_PORT)) return false;
   u.write((const uint8_t*)xml.c_str(), xml.length());
-  bool ok = u.endPacket();
-  if (ok) Serial.printf("[CCM] TX %u bytes\n", (unsigned)xml.length());
+  return u.endPacket();
+}
+
+inline bool ccmSend(const String &xml) {
+  // Broadcast is what reaches ArSprout; multicast keeps spec-compliant
+  // managers working. Succeed if either leaves the wire.
+  bool bc = ccmSendTo(CCM_BROADCAST, xml);
+  bool mc = ccmSendTo(CCM_MULTICAST, xml);
+  bool ok = bc || mc;
+  if (ok) Serial.printf("[CCM] TX %u bytes (bc=%d mc=%d)\n",
+                        (unsigned)xml.length(), bc, mc);
   return ok;
 }
 
-// UECS node announcement ("cnd"). UECS masters (e.g. ArSprout) discover a
-// node from its periodic cnd broadcast and only then accept its data CCM —
-// without this, a node's InAirTemp etc. are silently dropped. Send each
-// CCM cycle. region should match the node's data region.
+// UECS node-condition heartbeat ("cnd"). Sent each CCM cycle as a liveness
+// signal; region should match the node's data region. NOTE: ArSprout does
+// NOT require cnd to accept a node's data CCM — the real gate was the
+// destination address (see CCM_BROADCAST above). cnd is kept for spec
+// completeness and managers that display node liveness.
 inline bool ccmAnnounce(int room, int region, int order, int priority) {
   String x = ccmEnvelopeOpen();
   x += ccmDatum("cnd.cMC", room, region, order, priority, "0");
