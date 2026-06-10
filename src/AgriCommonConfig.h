@@ -30,6 +30,10 @@ struct CommonConfig {
   int16_t  ccm_room;
   int16_t  ccm_region;
   int16_t  ccm_priority;
+  // UECS node-type suffix appended to each CCM type as "<Type>.<ntype>"
+  // (the "ノード種別" field in ArSprout's CCM-receive setup; ArSprout splits
+  // the wire type on '.'). Empty = bare type (e.g. plain "InAirTemp").
+  char     ccm_ntype[8];
 };
 
 inline void commonDefaults(CommonConfig &c,
@@ -50,6 +54,7 @@ inline void commonDefaults(CommonConfig &c,
   c.ccm_room            = 1;
   c.ccm_region          = default_ccm_region;
   c.ccm_priority        = 29;
+  strlcpy(c.ccm_ntype,         "cMC",               sizeof(c.ccm_ntype));
 }
 
 inline void commonLoad(CommonConfig &c, Preferences &p) {
@@ -66,6 +71,10 @@ inline void commonLoad(CommonConfig &c, Preferences &p) {
   c.ccm_room        = p.getShort ("ccm_room", c.ccm_room);
   c.ccm_region      = p.getShort ("ccm_reg",  c.ccm_region);
   c.ccm_priority    = p.getShort ("ccm_pri",  c.ccm_priority);
+  // String-default overload so a pre-existing NVS without this key keeps the
+  // commonDefaults() value instead of being wiped to "".
+  { String nt = p.getString("ccm_nt", c.ccm_ntype);
+    strlcpy(c.ccm_ntype, nt.c_str(), sizeof(c.ccm_ntype)); }
 }
 
 inline void commonSave(const CommonConfig &c, Preferences &p) {
@@ -82,6 +91,7 @@ inline void commonSave(const CommonConfig &c, Preferences &p) {
   p.putShort ("ccm_room", c.ccm_room);
   p.putShort ("ccm_reg",  c.ccm_region);
   p.putShort ("ccm_pri",  c.ccm_priority);
+  p.putString("ccm_nt",   c.ccm_ntype);
 }
 
 inline void commonToJson(const CommonConfig &c, JsonObject root) {
@@ -99,6 +109,7 @@ inline void commonToJson(const CommonConfig &c, JsonObject root) {
   ccm["room"]       = c.ccm_room;
   ccm["region"]     = c.ccm_region;
   ccm["priority"]   = c.ccm_priority;
+  ccm["ntype"]      = c.ccm_ntype;
 }
 
 } // namespace agri

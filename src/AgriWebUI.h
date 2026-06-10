@@ -196,6 +196,10 @@ inline String pageConfig(const CommonConfig &c, const WebHooks &h) {
   row("Room",     "<input type=number name=ccm_room value='" + String(c.ccm_room) + "'>");
   row("Region",   "<input type=number name=ccm_reg value='"  + String(c.ccm_region) + "'>");
   row("Priority", "<input type=number name=ccm_pri value='"  + String(c.ccm_priority) + "'>");
+  // ArSprout CCM-receive "ノード種別": the wire type is sent as
+  // "<Type>.<ntype>". Default cMC. Empty = bare type.
+  row("Node type (ArSprout ノード種別)",
+      "<input name=ccm_nt value='" + String(c.ccm_ntype) + "'>");
   s += h.renderConfigSensorRows();
   s += F("</table><p><input type=submit value='Save'></p></form></div></body></html>");
   return s;
@@ -231,6 +235,7 @@ inline void applyCommonConfigForm(const String &body, CommonConfig &c) {
   c.ccm_room            = (int16_t) parseFormInt(body, "ccm_room", c.ccm_room);
   c.ccm_region          = (int16_t) parseFormInt(body, "ccm_reg",  c.ccm_region);
   c.ccm_priority        = (int16_t) parseFormInt(body, "ccm_pri",  c.ccm_priority);
+  parseFormStr(body, "ccm_nt", c.ccm_ntype, sizeof(c.ccm_ntype));
 }
 
 // ---- OTA (HTTP firmware upload) ------------------------------------------
