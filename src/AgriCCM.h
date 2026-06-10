@@ -90,6 +90,18 @@ inline String ccmDatum(const char *type, int room, int region, int order,
   return s;
 }
 
+// Like ccmDatum but appends the configured UECS node-type suffix to the
+// type: "<type>.<ntype>" (e.g. "Drainage.cMC"). Empty ntype = bare type.
+// Pass g_cfg.common.ccm_ntype. Lets every node match ArSprout's
+// "CCM識別子 + ノード種別" receive form without per-node string plumbing.
+inline String ccmDatumNT(const char *type, const char *ntype,
+                         int room, int region, int order,
+                         int priority, const char *value) {
+  String t = type;
+  if (ntype && ntype[0]) { t += '.'; t += ntype; }
+  return ccmDatum(t.c_str(), room, region, order, priority, value);
+}
+
 inline bool ccmSendTo(const IPAddress &dest, const String &xml) {
   NetworkUDP &u = ccmSocket();
   if (!u.beginPacket(dest, CCM_PORT)) return false;
