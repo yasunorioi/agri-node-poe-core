@@ -146,6 +146,7 @@ inline String pageDashboard(const WebHooks &h) {
          "try{"
          "let r=await fetch('/api/status');let d=await r.json();"
          "let n='<h3>Network</h3><table>'"
+         "+'<tr><th>Firmware</th><td>'+(d.fw_name||'')+' '+(d.fw_version||'')+'</td></tr>'"
          "+'<tr><th>IP</th><td>'+d.ip+'</td></tr>'"
          "+'<tr><th>Link</th><td>'+d.link+'</td></tr>'"
          "+'<tr><th>MQTT</th><td>'+(d.mqtt_connected?'connected':d.mqtt_host?'not connected':'not configured')+'</td></tr>'"
@@ -378,6 +379,8 @@ struct WebUI {
     } else if (method == "GET" && path == "/api/status") {
       JsonDocument doc;
       JsonObject root = doc.to<JsonObject>();
+      root["fw_name"]        = fwName;
+      root["fw_version"]     = fwVersion;
       root["uptime_s"]       = millis() / 1000;
       root["ip"]             = ETH.localIP().toString();
       root["link"]           = linkUp ? (haveLease ? "up" : "no-lease") : "down";
