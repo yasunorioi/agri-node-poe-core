@@ -3,7 +3,13 @@
 // Boot-time:  agri::OTA::begin(repo, binName, currentVersion);
 //             agri::OTA::checkLatest();         // after network is up
 //
-// Loop:       agri::OTA::poll();                // runs OTA when state==PENDING
+// Loop:       agri::OTA::poll();                // runs OTA when state==PENDING,
+//                                               // and re-checks GitHub once a day
+//
+// Semi-automatic by design: the device polls the latest release tag at boot and
+// then once every 24 h, surfaces a dashboard button when a newer version exists,
+// and only flashes when the user clicks it (POST /api/update). It never applies
+// an update on its own.
 //
 // Dashboard:  when latest > current, a yellow "Update to vX.X.X" button
 //             appears (rendered by AgriWebUI). Click it -> POST /api/update ->
@@ -38,6 +44,11 @@ inline int            progress        = 0;
 inline const char    *repo            = nullptr;
 inline const char    *binName         = nullptr;
 inline const char    *currentVersion  = nullptr;
+
+// Daily background re-check (semi-automatic). checkLatest() stamps lastCheckMs;
+// poll() re-runs it once recheckIntervalMs has elapsed. Set to 0 to disable.
+inline uint32_t       recheckIntervalMs = 24UL * 60 * 60 * 1000;
+inline uint32_t       lastCheckMs       = 0;
 
 inline const char *stateString() {
   switch (state) {
@@ -78,6 +89,7 @@ inline void begin(const char *repo_, const char *binName_, const char *currentVe
 
 inline void checkLatest() {
   if (!repo || !currentVersion) return;
+  lastCheckMs = millis();          // stamp up-front so a failed check waits a full interval
   NetworkClientSecure client;
   client.setInsecure();
   HTTPClient http;
@@ -201,7 +213,14 @@ inline void run() {
 }
 
 inline void poll() {
-  if (state == PENDING) run();
+  if (state == PENDING) { run(); return; }
+  if (state == RUNNING) return;
+  // Daily background re-check. Skips while an update is mid-flight (guarded
+  // above); harmless to keep re-confirming an already-available update.
+  if (repo && currentVersion && recheckIntervalMs &&
+      (uint32_t)(millis() - lastCheckMs) >= recheckIntervalMs) {
+    checkLatest();
+  }
 }
 
 }  // namespace OTA
