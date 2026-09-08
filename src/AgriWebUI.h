@@ -296,6 +296,14 @@ struct WebUI {
   static WebHooks            hooks;
   static const char         *fwName;
   static const char         *fwVersion;
+  // Captive-portal mode: when true, any unknown path is 302-redirected to
+  // /config instead of returning 404. Set this at runtime while the node is
+  // running a SoftAP for provisioning (WiFi nodes only) so a phone's captive
+  // detection probe (captive.apple.com / generate_204 / connecttest.txt) is
+  // bounced to the config page and the OS pops its sign-in browser. Requires a
+  // catch-all DNS on the AP so every hostname resolves to the AP. Leave false
+  // in normal (STA / Ethernet) operation.
+  static bool                captive;
 
   static void begin(const CommonConfig &c, const WebHooks &h,
                     const char *fw_name, const char *fw_version,
@@ -409,6 +417,10 @@ struct WebUI {
       commonToJson(*cfg, doc.to<JsonObject>());
       String out; serializeJson(doc, out);
       sendResponse(client, 200, "application/json", out);
+    } else if (captive) {
+      // Provisioning AP: bounce OS captive-detection probes (and everything
+      // else) to the config page so the phone opens its sign-in browser.
+      sendRedirect(client, "/config");
     } else {
       sendResponse(client, 404, "text/plain", "not found\n");
     }
@@ -422,5 +434,6 @@ inline const CommonConfig *WebUI::cfg       = nullptr;
 inline WebHooks            WebUI::hooks     = WebHooks{};
 inline const char         *WebUI::fwName    = "agri-node";
 inline const char         *WebUI::fwVersion = "0.0.0";
+inline bool                WebUI::captive   = false;
 
 } // namespace agri
