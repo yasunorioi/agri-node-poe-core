@@ -24,6 +24,7 @@
 //   void loop() {
 //     agri::otaHandle();
 //     agri::WebUI::handle(agri::Network::link_up, agri::Network::have_lease);
+//     agri::ProvisionAP::poll(agri::Network::have_lease, g_cfg.common.hostname);
 //     // sensor poll + MQTT/CCM publish on cadence, LED update
 //   }
 
@@ -36,3 +37,4 @@
 #include "AgriCCM.h"
 #include "AgriOTA.h"
 #include "AgriWebUI.h"
+#include "AgriProvisionAP.h"
