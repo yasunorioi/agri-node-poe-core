@@ -65,6 +65,28 @@ dashboard rows and CCM channel form fields.
   M5 ADC Unit v1.1 (ADS1110) + PVSS-03 pyranometer →
   `InRadiation.cMC`
 
+## Provisioning SoftAP fallback (`AgriProvisionAP`)
+
+Wired nodes edit all their config (hostname = mDNS name, MQTT host, CCM
+envelope) through the WebUI, which is only reachable over Ethernet — a
+chicken-and-egg problem when the node can't get on the LAN. `AgriProvisionAP`
+closes that gap: when there is no DHCP lease for a grace period, it raises a
+WPA2 SoftAP (SSID = hostname), starts a catch-all DNS, flips `WebUI::captive`
+on, and serves the **same** `AgriWebUI` — so a phone joins the AP and is bounced
+straight to `/config`. The AP is torn down automatically once Ethernet gets a
+lease. No second config system; WiFi and the W5500 coexist on the ESP32-S3.
+
+```cpp
+#include <AgriProvisionAP.h>
+void loop() {
+  // ... WebUI::handle(...) ...
+  agri::ProvisionAP::poll(agri::Network::have_lease, g_cfg.common.hostname);
+}
+```
+
+WPA2 password defaults to `agrinode` (8 chars); override per build with
+`-DAGRI_AP_PASSWORD=\"...\"`. See `agri-temp-poe` for the working wiring.
+
 ## Notes for downstream sketches
 
 **ISRs go in `main.cpp`, not in a header.** ESP32 requires interrupt
