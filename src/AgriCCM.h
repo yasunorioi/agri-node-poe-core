@@ -1,11 +1,15 @@
 // AgriCCM.h — UECS-CCM envelope builder + per-datum helper.
 //
+// ⚠️ ONE <DATA> PER PACKET. ArSprout's receiver keeps only one datum per UDP
+// packet — packing several <DATA> into one envelope silently drops all but one.
+// Call ccmEnvelopeOpen()…ccmEnvelopeClose()+ccmSend() once PER DATUM. See
+// docs/ccm_pub.md and agri-env-poe's ccmPublishOne() for the canonical pattern.
+//
 // Packet shape (matches ccm_rp2350_relay / OGMS):
 //   <UECS ver="1.00-E10">
 //     <DATA type="InAirTemp.cMC" room="1" region="11" order="1"
 //           priority="29" lv="S" cast="uni">23.5</DATA>
-//     ...
-//   </UECS>
+//   </UECS>   <!-- exactly one DATA -->
 //
 // Usage
 //   agri::ccmBegin();              // open UDP socket (once, after DHCP)
