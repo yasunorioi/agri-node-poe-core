@@ -248,10 +248,28 @@ inline String pageOta(const WebHooks &h) {
          "<input type=file id=f accept='.bin'> <input type=submit value='Update' onclick='up()'>"
          "<p id=st></p>"
          "<script>"
-         "async function up(){var f=document.getElementById('f').files[0];if(!f){st.textContent='choose a .bin first';return;}"
-         "var st=document.getElementById('st');st.textContent='Uploading '+f.size+' bytes...';"
+         "async function up(){var st=document.getElementById('st');"
+         "var f=document.getElementById('f').files[0];if(!f){st.textContent='choose a .bin first';return;}"
+         "st.textContent='Uploading '+f.size+' bytes...';"
          "try{var r=await fetch('/api/ota',{method:'POST',body:f});st.textContent=await r.text();}"
          "catch(e){st.textContent='done / device rebooting — reconnect in ~10s';}}"
+         "</script></div>"
+         // Reboot over the network. These nodes sit on PoE out in a greenhouse,
+         // so the only other way to power-cycle one is to walk out and pull the
+         // cable. Deliberately a separate action rather than something POST
+         // /config does: saving config stays reboot-free (it rebinds the sensor
+         // bus and re-announces mDNS in place), so editing one field never costs
+         // a ~10 s gap in the series.
+         "<div class=sec><h3>Reboot</h3>"
+         "<p>Restart the node over the network. Settings are kept (they live in "
+         "NVS); it comes back in ~10 s and publishes nothing while it is down.</p>"
+         "<input type=submit value='Reboot' onclick='rb()'>"
+         "<p id=rst></p>"
+         "<script>"
+         "async function rb(){if(!confirm('Reboot this node?'))return;"
+         "try{await fetch('/api/reboot',{method:'POST'});}catch(e){}"
+         "document.getElementById('rst').textContent='rebooting — reconnecting in ~12s';"
+         "setTimeout(function(){location.href='/';},12000);}"
          "</script></div></body></html>");
   return s;
 }
@@ -412,6 +430,14 @@ struct WebUI {
         OTA::schedule();
         sendResponse(client, 202, "text/plain", "ota scheduled\n");
       }
+    } else if (method == "POST" && path == "/api/reboot") {
+      // Answer and close the socket *before* restarting, so the caller sees a
+      // real 200 rather than a dropped connection (same order as the OTA path).
+      sendResponse(client, 200, "text/plain", "rebooting\n");
+      client.flush();
+      client.stop();
+      delay(300);
+      ESP.restart();
     } else if (method == "GET" && path == "/api/config") {
       JsonDocument doc;
       commonToJson(*cfg, doc.to<JsonObject>());
