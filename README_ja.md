@@ -67,6 +67,15 @@ lib_deps =
 - [`agri-solar-poe`](https://github.com/yasunorioi/agri-solar-poe) —
   [M5 ADC Unit v1.1（ADS1110）](https://docs.m5stack.com/en/unit/Unit-ADC_V1.1) + [PVSS-03](https://www.sanko-web.co.jp/product/pvssap/product-pvss-03/) 日射計 →
   `InRadiation.cMC`
+- [`agri-temp-poe`](https://github.com/yasunorioi/agri-temp-poe) —
+  [AtomS3 Lite](https://docs.m5stack.com/en/core/AtomS3%20Lite) + [Grove DS18B20](https://www.switch-science.com/products/10979) 多点 1-Wire 温度 →
+  `WaterTemp.cMC`（スロット単位で ROM→トピックを束縛）
+- [`agri-uv-poe`](https://github.com/yasunorioi/agri-uv-poe) —
+  [DFRobot SEN0636](https://wiki.dfrobot.com/sen0636/) UV インデックスセンサ（Modbus RTU）→ UV index 0–11 + リスクレベル
+- [`agri-canopy-poe`](https://github.com/yasunorioi/agri-canopy-poe) —
+  [PoECAM-W](https://docs.m5stack.com/en/unit/PoECAM-W) 群落カメラ → 定期撮影 + WebDAV アップロード（MQTT/CCM ではない）
+- [`agri-co2-burner`](https://github.com/yasunorioi/agri-co2-burner) —
+  [AtomHub Switch（K042）](https://docs.m5stack.com/en/atom/atomhub_switch) 上の **WiFi** アクチュエータ。MQTT の CO₂ 値から [静岡製機 CG-1000](https://www.shizuoka-seiki.co.jp/products/agriculture/greenhouse/horticulture/cg-1000/) を駆動する CO₂ 施肥コントローラ
 
 ## プロビジョニング用 SoftAP フォールバック（`AgriProvisionAP`）
 

@@ -66,6 +66,15 @@ dashboard rows and CCM channel form fields.
 - [`agri-solar-poe`](https://github.com/yasunorioi/agri-solar-poe) —
   [M5 ADC Unit v1.1 (ADS1110)](https://docs.m5stack.com/en/unit/Unit-ADC_V1.1) + [PVSS-03](https://www.sanko-web.co.jp/product/pvssap/product-pvss-03/) pyranometer →
   `InRadiation.cMC`
+- [`agri-temp-poe`](https://github.com/yasunorioi/agri-temp-poe) —
+  [AtomS3 Lite](https://docs.m5stack.com/en/core/AtomS3%20Lite) + [Grove DS18B20](https://www.switch-science.com/products/10979) multi-point 1-Wire →
+  `WaterTemp.cMC` (per-slot ROM→topic binding)
+- [`agri-uv-poe`](https://github.com/yasunorioi/agri-uv-poe) —
+  [DFRobot SEN0636](https://wiki.dfrobot.com/sen0636/) UV Index sensor (Modbus RTU) → UV index 0–11 + risk level
+- [`agri-canopy-poe`](https://github.com/yasunorioi/agri-canopy-poe) —
+  [PoECAM-W](https://docs.m5stack.com/en/unit/PoECAM-W) canopy camera → scheduled capture + WebDAV upload (not MQTT/CCM)
+- [`agri-co2-burner`](https://github.com/yasunorioi/agri-co2-burner) —
+  **WiFi** actuator on [AtomHub Switch (K042)](https://docs.m5stack.com/en/atom/atomhub_switch): a CO₂-dosing controller that drives a [Shizuoka Seiki CG-1000](https://www.shizuoka-seiki.co.jp/products/agriculture/greenhouse/horticulture/cg-1000/) from MQTT CO₂
 
 ## Provisioning SoftAP fallback (`AgriProvisionAP`)
 
