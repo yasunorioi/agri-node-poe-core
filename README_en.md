@@ -2,7 +2,7 @@
 
 [🇯🇵 日本語](README_ja.md) · **English**
 
-Shared infrastructure for **M5Stack ATOM PoE** sensor / relay nodes that feed
+Shared infrastructure for [**M5Stack ATOM PoE**](https://docs.m5stack.com/en/atom/atom_poe) sensor / relay nodes that feed
 [OGMS](https://github.com/yasunorioi/OGMS) and other UECS-CCM consumers.
 
 What this library handles for you so the per-node sketch can focus on
@@ -56,15 +56,15 @@ dashboard rows and CCM channel form fields.
 ## Downstream nodes using this library
 
 - [`agri-rain-poe`](https://github.com/yasunorioi/agri-rain-poe) —
-  DFRobot SEN0575 rain gauge (Modbus RTU) → `WRainfallAmt.cMC`
+  [DFRobot SEN0575](https://wiki.dfrobot.com/sen0575/) rain gauge (Modbus RTU) → `WRainfallAmt.cMC`
 - [`agri-env-poe`](https://github.com/yasunorioi/agri-env-poe) —
-  M5 ENV III (SHT30+QMP6988) + SCD41 CO₂ → `InAirTemp.cMC`,
+  [M5 ENV III](https://docs.m5stack.com/en/unit/envIII) (SHT30+QMP6988) + [SCD41](https://sensirion.com/products/catalog/SCD41) CO₂ → `InAirTemp.cMC`,
   `InAirHumid.cMC`, `InAirPressure.cMC`, `InAirCO2.cMC`
 - [`agri-flow-poe`](https://github.com/yasunorioi/agri-flow-poe) —
-  DIGITEN hall-effect flow meter →
+  [DIGITEN](https://www.digiten.shop/collections/counter) hall-effect flow meter →
   `WaterFlow.cMC` (L/min) + `WaterCons.cMC` (L cumulative)
 - [`agri-solar-poe`](https://github.com/yasunorioi/agri-solar-poe) —
-  M5 ADC Unit v1.1 (ADS1110) + PVSS-03 pyranometer →
+  [M5 ADC Unit v1.1 (ADS1110)](https://docs.m5stack.com/en/unit/Unit-ADC_V1.1) + [PVSS-03](https://www.sanko-web.co.jp/product/pvssap/product-pvss-03/) pyranometer →
   `InRadiation.cMC`
 
 ## Provisioning SoftAP fallback (`AgriProvisionAP`)

@@ -3,7 +3,7 @@
 **日本語** · [🇬🇧 English](README_en.md)
 
 [OGMS](https://github.com/yasunorioi/OGMS) やその他の UECS-CCM コンシューマーへ
-データを送る **M5Stack ATOM PoE** センサー／リレーノード向けの共通基盤です。
+データを送る [**M5Stack ATOM PoE**](https://docs.m5stack.com/en/atom/atom_poe) センサー／リレーノード向けの共通基盤です。
 
 各ノードのスケッチがセンサー処理に専念できるよう、このライブラリが以下を
 引き受けます。
@@ -57,15 +57,15 @@ lib_deps =
 ## このライブラリを使う下流ノード
 
 - [`agri-rain-poe`](https://github.com/yasunorioi/agri-rain-poe) —
-  DFRobot SEN0575 雨量計（Modbus RTU）→ `WRainfallAmt.cMC`
+  [DFRobot SEN0575](https://wiki.dfrobot.com/sen0575/) 雨量計（Modbus RTU）→ `WRainfallAmt.cMC`
 - [`agri-env-poe`](https://github.com/yasunorioi/agri-env-poe) —
-  M5 ENV III（SHT30+QMP6988）+ SCD41 CO₂ → `InAirTemp.cMC`、
+  [M5 ENV III](https://docs.m5stack.com/en/unit/envIII)（SHT30+QMP6988）+ [SCD41](https://sensirion.com/products/catalog/SCD41) CO₂ → `InAirTemp.cMC`、
   `InAirHumid.cMC`、`InAirPressure.cMC`、`InAirCO2.cMC`
 - [`agri-flow-poe`](https://github.com/yasunorioi/agri-flow-poe) —
-  DIGITEN ホール効果流量計 →
+  [DIGITEN](https://www.digiten.shop/collections/counter) ホール効果流量計 →
   `WaterFlow.cMC`（L/min）+ `WaterCons.cMC`（L 累積）
 - [`agri-solar-poe`](https://github.com/yasunorioi/agri-solar-poe) —
-  M5 ADC Unit v1.1（ADS1110）+ PVSS-03 日射計 →
+  [M5 ADC Unit v1.1（ADS1110）](https://docs.m5stack.com/en/unit/Unit-ADC_V1.1) + [PVSS-03](https://www.sanko-web.co.jp/product/pvssap/product-pvss-03/) 日射計 →
   `InRadiation.cMC`
 
 ## プロビジョニング用 SoftAP フォールバック（`AgriProvisionAP`）
