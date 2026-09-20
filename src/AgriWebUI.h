@@ -177,8 +177,58 @@ inline String pageDashboard(const WebHooks &h) {
   return s;
 }
 
+// The hostname this node announced when it booted.
+//
+// POST /config calls mdnsRestart() the moment the hostname changes, so mDNS and
+// ArduinoOTA answer to the new name straight away. The DHCP client hostname is
+// different: it is only sent when the lease is taken, so the router keeps the
+// old name until the node reboots. Keeping the boot value lets /config say
+// exactly which half is stale instead of a vague "reboot required".
+inline char *bootHostname() { static char h[32] = ""; return h; }
+
+// Reboot over the network. These nodes sit on PoE out in a greenhouse, so the
+// only other way to power-cycle one is to walk out and pull the cable.
+//
+// Deliberately a separate action rather than something POST /config does:
+// saving config stays reboot-free (it rebinds the sensor bus and re-announces
+// mDNS in place), so editing one field never costs a ~10 s gap in the series.
+//
+// Rendered on BOTH /config and /ota. It used to live only on /ota — the page you
+// open to flash firmware — so at the one moment you actually want it (just after
+// changing the hostname on /config) it was nowhere in sight, and a nav label
+// reading "OTA" gives no hint that a reboot button hides behind it.
+inline String sectionReboot() {
+  return F("<div class=sec><h3>Reboot</h3>"
+           "<p>Restart the node over the network. Settings are kept (they live in "
+           "NVS); it comes back in ~10 s and publishes nothing while it is down.</p>"
+           "<input type=submit value='Reboot' onclick='rb()'>"
+           "<p id=rst></p>"
+           "<script>"
+           "async function rb(){if(!confirm('Reboot this node?'))return;"
+           "try{await fetch('/api/reboot',{method:'POST'});}catch(e){}"
+           "document.getElementById('rst').textContent='rebooting — reconnecting in ~12s';"
+           "setTimeout(function(){location.href='/';},12000);}"
+           "</script></div>");
+}
+
 inline String pageConfig(const CommonConfig &c, const WebHooks &h) {
   String s = pageHead("Config", h.nodeTitle());
+
+  // Hostname edited since boot. Say precisely which half is already live and
+  // which is not, rather than "reboot required" — mDNS is not the stale part.
+  if (bootHostname()[0] && strcmp(bootHostname(), c.hostname) != 0) {
+    s += F("<div class=sec style='border-left:3px solid #e8a33d'>"
+           "<p style='color:#e8a33d;margin:0'><b>Hostname changed since boot.</b><br>"
+           "mDNS and ArduinoOTA already answer to <code>");
+    s += c.hostname;
+    s += F(".local</code>. The DHCP-registered name is still <code>");
+    s += bootHostname();
+    s += F("</code> until this node reboots, and a cached <code>");
+    s += bootHostname();
+    s += F(".local</code> may keep resolving for a while. Reboot below if that "
+           "matters.</p></div>");
+  }
+
   auto row = [&](const char *label, const String &input) {
     s += "<tr><th>"; s += label; s += "</th><td>"; s += input; s += "</td></tr>";
   };
@@ -202,7 +252,9 @@ inline String pageConfig(const CommonConfig &c, const WebHooks &h) {
   row("Node type (ArSprout ノード種別)",
       "<input name=ccm_nt value='" + String(c.ccm_ntype) + "'>");
   s += h.renderConfigSensorRows();
-  s += F("</table><p><input type=submit value='Save'></p></form></div></body></html>");
+  s += F("</table><p><input type=submit value='Save'></p></form></div>");
+  s += sectionReboot();
+  s += F("</body></html>");
   return s;
 }
 
@@ -253,24 +305,9 @@ inline String pageOta(const WebHooks &h) {
          "st.textContent='Uploading '+f.size+' bytes...';"
          "try{var r=await fetch('/api/ota',{method:'POST',body:f});st.textContent=await r.text();}"
          "catch(e){st.textContent='done / device rebooting — reconnect in ~10s';}}"
-         "</script></div>"
-         // Reboot over the network. These nodes sit on PoE out in a greenhouse,
-         // so the only other way to power-cycle one is to walk out and pull the
-         // cable. Deliberately a separate action rather than something POST
-         // /config does: saving config stays reboot-free (it rebinds the sensor
-         // bus and re-announces mDNS in place), so editing one field never costs
-         // a ~10 s gap in the series.
-         "<div class=sec><h3>Reboot</h3>"
-         "<p>Restart the node over the network. Settings are kept (they live in "
-         "NVS); it comes back in ~10 s and publishes nothing while it is down.</p>"
-         "<input type=submit value='Reboot' onclick='rb()'>"
-         "<p id=rst></p>"
-         "<script>"
-         "async function rb(){if(!confirm('Reboot this node?'))return;"
-         "try{await fetch('/api/reboot',{method:'POST'});}catch(e){}"
-         "document.getElementById('rst').textContent='rebooting — reconnecting in ~12s';"
-         "setTimeout(function(){location.href='/';},12000);}"
-         "</script></div></body></html>");
+         "</script></div>");
+  s += sectionReboot();
+  s += F("</body></html>");
   return s;
 }
 
@@ -327,6 +364,9 @@ struct WebUI {
                     const char *fw_name, const char *fw_version,
                     uint16_t port = 80) {
     cfg = &c; hooks = h; fwName = fw_name; fwVersion = fw_version;
+    // Remember the name we came up with, so /config can tell the operator which
+    // half of a later hostname change is already live (see bootHostname()).
+    strlcpy(bootHostname(), c.hostname, 32);
     server.begin(port);
   }
 
