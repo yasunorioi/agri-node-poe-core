@@ -1,0 +1,36 @@
+name: version-consistency
+
+# library.json / library.properties / git タグの version 不一致を防ぐ。
+# 2度（0.3.0→0.7.0、0.8.0）library.properties の上げ忘れが起きたため、
+# どのマシンから push されても server 側で弾けるよう CI で検査する。
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: library.json と library.properties の version が一致するか
+        run: |
+          json=$(jq -r .version library.json)
+          props=$(grep -m1 '^version=' library.properties | cut -d= -f2 | tr -d '[:space:]')
+          echo "library.json=$json  library.properties=$props"
+          if [ "$json" != "$props" ]; then
+            echo "::error::version 不一致: library.json=$json だが library.properties=$props。リリース時は両ファイルを同時に上げること。"
+            exit 1
+          fi
+
+      - name: タグ push ならタグと version が一致するか
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          tag="${GITHUB_REF#refs/tags/v}"
+          json=$(jq -r .version library.json)
+          echo "tag=v$tag  library.json=$json"
+          if [ "$tag" != "$json" ]; then
+            echo "::error::タグ v$tag が library.json の version $json と一致しない。"
+            exit 1
+          fi
